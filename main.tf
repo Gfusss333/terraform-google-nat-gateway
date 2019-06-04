@@ -91,10 +91,10 @@ module "nat-gateway" {
 }
 
 resource "google_compute_route" "nat-instance-gateway" {
-  count                  = "${var.module_enabled && var.ip == ""? 1 : 0}"
+  count                  = "${var.module_enabled && var.ip == "" ? length(var.dest_range) : 0}"
   name                   = "${local.zonal_tag}"
   project                = "${var.project}"
-  dest_range             = "${var.dest_range}"
+  dest_range             = "${element(var.dest_range, count.index)}"
   network                = "${data.google_compute_network.network.self_link}"
   next_hop_instance      = "${element(split("/", element(module.nat-gateway.instances[0], 0)), 10)}"
   next_hop_instance_zone = "${local.zone}"
@@ -103,10 +103,10 @@ resource "google_compute_route" "nat-instance-gateway" {
 }
 
 resource "google_compute_route" "nat-ip-gateway" {
-  count       = "${var.module_enabled && var.ip != ""? 1 : 0}"
+  count       = "${var.module_enabled && var.ip != ""? length(var.dest_range) : 0}"
   name        = "${local.zonal_tag}"
   project     = "${var.project}"
-  dest_range  = "${var.dest_range}"
+  dest_range  = "${element(var.dest_range, count.index)}"
   network     = "${data.google_compute_network.network.self_link}"
   next_hop_ip = "${var.ip}"
   tags        = ["${compact(concat(list("${local.regional_tag}", "${local.zonal_tag}"), var.tags))}"]
