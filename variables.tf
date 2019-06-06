@@ -207,6 +207,7 @@ variable region_params {
 }
 
 variable "dest_range" {
-  description = "The destination IPv4 address range that this route applies to"
-  default     = "0.0.0.0/0"
+  description = "The destination IPv4 netowrks that will be routed to this gateway"
+  type        = "list"
+  default     = ["0.0.0.0/0"]
 }
