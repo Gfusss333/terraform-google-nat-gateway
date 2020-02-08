@@ -37,7 +37,7 @@ data "google_compute_address" "default" {
 }
 
 locals {
-  zone          = var.zone == "" ? var.region_params[var.region]["zone"] : var.zone
+  zone          = var.zone
   name          = "${var.name}nat-gateway-${local.zone}"
   instance_tags = ["inst-${local.zonal_tag}", "inst-${local.regional_tag}"]
   zonal_tag     = "${var.name}nat-${local.zone}"
