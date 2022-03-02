@@ -45,7 +45,7 @@ locals {
 }
 
 module "nat-gateway" {
-  source                = "github.com/textplus-inc/terraform-google-managed-instance-group?ref=textplus_0.13"
+  source                = "github.com/textplus-inc/terraform-google-managed-instance-group?ref=textplus_0.13_google4x"
   module_enabled        = var.module_enabled
   project               = var.project
   region                = var.region
