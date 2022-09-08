@@ -14,38 +14,38 @@
  * limitations under the License.
  */
 
-variable region {
+variable "region" {
   default = "us-east4"
 }
 
-variable zone {
+variable "zone" {
   default = "us-east4-b"
 }
 
-variable network_name {
+variable "network_name" {
   default = "tf-ci-nat-gke-private"
 }
 
 data "google_client_config" "current" {}
 
-provider google {
-  region = "${var.region}"
+provider "google" {
+  region = var.region
 }
 
 data "google_container_engine_versions" "default" {
-  zone = "${var.zone}"
+  zone = var.zone
 }
 
 resource "google_compute_network" "tf-ci" {
-  name                    = "${var.network_name}"
+  name                    = var.network_name
   auto_create_subnetworks = "false"
 }
 
 resource "google_compute_subnetwork" "tf-ci" {
-  name                     = "${var.network_name}"
+  name                     = var.network_name
   ip_cidr_range            = "10.127.0.0/20"
-  network                  = "${google_compute_network.tf-ci.self_link}"
-  region                   = "${var.region}"
+  network                  = google_compute_network.tf-ci.self_link
+  region                   = var.region
   private_ip_google_access = true
 }
 
@@ -56,8 +56,8 @@ resource "random_id" "id" {
 resource "google_compute_subnetwork" "tf-ci-gke-private" {
   name                     = "${var.network_name}-cluster-${random_id.id.hex}"
   ip_cidr_range            = "10.0.0.0/22"
-  network                  = "${google_compute_network.tf-ci.self_link}"
-  region                   = "${var.region}"
+  network                  = google_compute_network.tf-ci.self_link
+  region                   = var.region
   private_ip_google_access = true
 
   secondary_ip_range = [
@@ -73,9 +73,9 @@ resource "google_compute_subnetwork" "tf-ci-gke-private" {
 }
 
 resource "google_container_cluster" "tf-ci" {
-  name                   = "${var.network_name}"
+  name                   = var.network_name
   private_cluster        = true
-  zone                   = "${var.zone}"
+  zone                   = var.zone
   initial_node_count     = 3
   master_ipv4_cidr_block = "172.16.0.0/28"
 
@@ -93,9 +93,9 @@ resource "google_container_cluster" "tf-ci" {
     services_secondary_range_name = "${var.network_name}-services-${random_id.id.hex}"
   }
 
-  min_master_version = "${data.google_container_engine_versions.default.latest_master_version}"
-  network            = "${google_compute_subnetwork.tf-ci.network}"
-  subnetwork         = "${google_compute_subnetwork.tf-ci-gke-private.name}"
+  min_master_version = data.google_container_engine_versions.default.latest_master_version
+  network            = google_compute_subnetwork.tf-ci.network
+  subnetwork         = google_compute_subnetwork.tf-ci-gke-private.name
 
   timeouts {
     create = "30m"
@@ -103,22 +103,22 @@ resource "google_container_cluster" "tf-ci" {
   }
 }
 
-output network {
-  value = "${google_compute_subnetwork.tf-ci.network}"
+output "network" {
+  value = google_compute_subnetwork.tf-ci.network
 }
 
-output subnetwork_name {
-  value = "${google_compute_subnetwork.tf-ci.name}"
+output "subnetwork_name" {
+  value = google_compute_subnetwork.tf-ci.name
 }
 
-output cluster_name {
-  value = "${google_container_cluster.tf-ci.name}"
+output "cluster_name" {
+  value = google_container_cluster.tf-ci.name
 }
 
-output cluster_region {
-  value = "${var.region}"
+output "cluster_region" {
+  value = var.region
 }
 
-output cluster_zone {
-  value = "${google_container_cluster.tf-ci.zone}"
+output "cluster_zone" {
+  value = google_container_cluster.tf-ci.zone
 }

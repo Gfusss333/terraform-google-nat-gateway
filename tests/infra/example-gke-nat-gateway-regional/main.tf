@@ -14,48 +14,48 @@
  * limitations under the License.
  */
 
-variable region {
+variable "region" {
   default = "us-central1"
 }
 
-variable zone {
+variable "zone" {
   default = "us-central1-a"
 }
 
-variable network_name {
+variable "network_name" {
   default = "tf-ci-nat-gke-regional"
 }
 
 data "google_client_config" "current" {}
 
-provider google {
-  region = "${var.region}"
+provider "google" {
+  region = var.region
 }
 
 data "google_container_engine_versions" "default" {
-  zone = "${var.region}"
+  zone = var.region
 }
 
 resource "google_compute_network" "tf-ci" {
-  name                    = "${var.network_name}"
+  name                    = var.network_name
   auto_create_subnetworks = "false"
 }
 
 resource "google_compute_subnetwork" "tf-ci" {
-  name                     = "${var.network_name}"
+  name                     = var.network_name
   ip_cidr_range            = "10.127.0.0/20"
-  network                  = "${google_compute_network.tf-ci.self_link}"
-  region                   = "${var.region}"
+  network                  = google_compute_network.tf-ci.self_link
+  region                   = var.region
   private_ip_google_access = true
 }
 
 resource "google_container_cluster" "tf-ci" {
-  name               = "${var.network_name}"
-  region             = "${var.region}"
+  name               = var.network_name
+  region             = var.region
   initial_node_count = 1
-  min_master_version = "${data.google_container_engine_versions.default.latest_master_version}"
-  network            = "${google_compute_subnetwork.tf-ci.network}"
-  subnetwork         = "${google_compute_subnetwork.tf-ci.name}"
+  min_master_version = data.google_container_engine_versions.default.latest_master_version
+  network            = google_compute_subnetwork.tf-ci.network
+  subnetwork         = google_compute_subnetwork.tf-ci.name
 
   timeouts {
     create = "30m"
@@ -63,18 +63,18 @@ resource "google_container_cluster" "tf-ci" {
   }
 }
 
-output network {
-  value = "${google_compute_subnetwork.tf-ci.network}"
+output "network" {
+  value = google_compute_subnetwork.tf-ci.network
 }
 
-output subnetwork_name {
-  value = "${google_compute_subnetwork.tf-ci.name}"
+output "subnetwork_name" {
+  value = google_compute_subnetwork.tf-ci.name
 }
 
-output cluster_name {
-  value = "${google_container_cluster.tf-ci.name}"
+output "cluster_name" {
+  value = google_container_cluster.tf-ci.name
 }
 
-output cluster_region {
-  value = "${var.region}"
+output "cluster_region" {
+  value = var.region
 }

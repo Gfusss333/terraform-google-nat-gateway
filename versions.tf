@@ -5,8 +5,5 @@ terraform {
     google = {
       source = "hashicorp/google"
     }
-    template = {
-      source = "hashicorp/template"
-    }
   }
 }

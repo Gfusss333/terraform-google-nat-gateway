@@ -14,16 +14,6 @@
  * limitations under the License.
  */
 
- data "template_file" "nat-startup-script" {
-  template = file(format("%s/config/startup.sh", path.module))
-
-  vars = {
-    squid_enabled = var.squid_enabled
-    squid_config  = var.squid_config
-    module_path   = path.module
-  }
-}
-
 data "google_compute_network" "network" {
   name    = var.network
   project = var.network_project == "" ? var.project : var.network_project
@@ -63,12 +53,16 @@ module "nat-gateway" {
   can_ip_forward        = "true"
   service_port          = "80"
   service_port_name     = "http"
-  startup_script        = data.template_file.nat-startup-script.rendered
-  wait_for_instances    = true
-  metadata              = var.metadata
-  ssh_fw_rule           = var.ssh_fw_rule
-  ssh_source_ranges     = var.ssh_source_ranges
-  http_health_check     = var.autohealing_enabled
+  startup_script = templatefile(format("%s/config/startup.sh", path.module), {
+    squid_enabled = var.squid_enabled
+    squid_config  = var.squid_config
+    module_path   = path.module
+  })
+  wait_for_instances = true
+  metadata           = var.metadata
+  ssh_fw_rule        = var.ssh_fw_rule
+  ssh_source_ranges  = var.ssh_source_ranges
+  http_health_check  = var.autohealing_enabled
 
   rolling_update_policy = {
     type                  = "PROACTIVE"

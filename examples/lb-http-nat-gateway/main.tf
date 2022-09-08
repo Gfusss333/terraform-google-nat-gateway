@@ -14,67 +14,61 @@
  * limitations under the License.
  */
 
-variable region {
+variable "region" {
   default = "us-west1"
 }
 
-variable zone {
+variable "zone" {
   default = "us-west1-b"
 }
 
-variable network_name {
+variable "network_name" {
   default = "lb-nat-example"
 }
 
-provider google {
-  region = "${var.region}"
+provider "google" {
+  region = var.region
 }
 
 resource "google_compute_network" "default" {
-  name                    = "${var.network_name}"
+  name                    = var.network_name
   auto_create_subnetworks = "false"
 }
 
 resource "google_compute_subnetwork" "default" {
-  name                     = "${var.network_name}"
+  name                     = var.network_name
   ip_cidr_range            = "10.127.0.0/20"
-  network                  = "${google_compute_network.default.self_link}"
-  region                   = "${var.region}"
+  network                  = google_compute_network.default.self_link
+  region                   = var.region
   private_ip_google_access = true
 }
 
-data "template_file" "group1-startup-script" {
-  template = "${file("${format("%s/gceme.sh.tpl", path.module)}")}"
-
-  vars {
-    PROXY_PATH = ""
-  }
-}
-
 module "mig1" {
-  source             = "GoogleCloudPlatform/managed-instance-group/google"
-  version            = "1.1.14"
-  region             = "${var.region}"
-  zone               = "${var.zone}"
-  name               = "${var.network_name}-mig"
-  size               = 2
-  access_config      = []
-  target_tags        = ["${var.network_name}-mig", "nat-${var.region}"]
-  service_port       = 80
-  service_port_name  = "http"
+  source            = "GoogleCloudPlatform/managed-instance-group/google"
+  version           = "1.1.14"
+  region            = var.region
+  zone              = var.zone
+  name              = "${var.network_name}-mig"
+  size              = 2
+  access_config     = []
+  target_tags       = ["${var.network_name}-mig", "nat-${var.region}"]
+  service_port      = 80
+  service_port_name = "http"
+  startup_script = templatefile(format("%s/gceme.sh.tpl", path.module), {
+    PROXY_PATH = ""
+  })
   wait_for_instances = true
-  startup_script     = "${data.template_file.group1-startup-script.rendered}"
-  depends_id         = "${module.nat-gateway.depends_id}"
-  network            = "${google_compute_subnetwork.default.name}"
-  subnetwork         = "${google_compute_subnetwork.default.name}"
+  depends_id         = module.nat-gateway.depends_id
+  network            = google_compute_subnetwork.default.name
+  subnetwork         = google_compute_subnetwork.default.name
 }
 
 module "nat-gateway" {
   source     = "../../"
-  region     = "${var.region}"
-  zone       = "${var.zone}"
-  network    = "${google_compute_subnetwork.default.name}"
-  subnetwork = "${google_compute_subnetwork.default.name}"
+  region     = var.region
+  zone       = var.zone
+  network    = google_compute_subnetwork.default.name
+  subnetwork = google_compute_subnetwork.default.name
 }
 
 module "gce-lb-http" {
@@ -99,9 +93,9 @@ module "gce-lb-http" {
 }
 
 output "ip-nat-gateway" {
-  value = "${module.nat-gateway.external_ip}"
+  value = module.nat-gateway.external_ip
 }
 
 output "ip-lb" {
-  value = "${module.gce-lb-http.external_ip}"
+  value = module.gce-lb-http.external_ip
 }

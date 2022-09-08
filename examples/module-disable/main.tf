@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-variable region {
+variable "region" {
   default = "us-west1"
 }
 
-variable zone {
+variable "zone" {
   default = "us-west1-a"
 }
 
@@ -30,41 +30,41 @@ variable "vm_image" {
   default = "projects/debian-cloud/global/images/family/debian-9"
 }
 
-provider google {
-  region = "${var.region}"
+provider "google" {
+  region = var.region
 }
 
-variable network_name {
+variable "network_name" {
   default = "disable-nat-example"
 }
 
 resource "google_compute_network" "default" {
-  name                    = "${var.network_name}"
+  name                    = var.network_name
   auto_create_subnetworks = "false"
 }
 
 resource "google_compute_subnetwork" "default" {
-  name                     = "${var.network_name}"
+  name                     = var.network_name
   ip_cidr_range            = "10.127.0.0/20"
-  network                  = "${google_compute_network.default.self_link}"
-  region                   = "${var.region}"
+  network                  = google_compute_network.default.self_link
+  region                   = var.region
   private_ip_google_access = true
 }
 
 module "nat" {
   source         = "../../"
-  module_enabled = "${var.module_enabled}"
+  module_enabled = var.module_enabled
   name           = "${var.network_name}-"
-  region         = "${var.region}"
-  zone           = "${var.zone}"
-  network        = "${google_compute_subnetwork.default.name}"
-  subnetwork     = "${google_compute_subnetwork.default.name}"
+  region         = var.region
+  zone           = var.zone
+  network        = google_compute_subnetwork.default.name
+  subnetwork     = google_compute_subnetwork.default.name
 }
 
 resource "google_compute_address" "vm" {
-  count  = "${var.module_enabled ? 0 : 1}"
+  count  = var.module_enabled ? 0 : 1
   name   = "${var.network_name}-vm"
-  region = "${var.region}"
+  region = var.region
 }
 
 locals {
@@ -79,26 +79,26 @@ locals {
 
 resource "google_compute_instance" "vm" {
   name                      = "${var.network_name}-vm"
-  zone                      = "${var.zone}"
+  zone                      = var.zone
   tags                      = ["${var.network_name}-ssh", "${var.network_name}-nat-${var.region}"]
   machine_type              = "f1-micro"
   allow_stopping_for_update = true
 
   boot_disk {
     initialize_params {
-      image = "${var.vm_image}"
+      image = var.vm_image
     }
   }
 
   network_interface {
-    subnetwork    = "${google_compute_subnetwork.default.name}"
+    subnetwork    = google_compute_subnetwork.default.name
     access_config = ["${local.access_config_vm["${var.module_enabled ? "enabled" : "disabled"}"]}"]
   }
 }
 
 resource "google_compute_firewall" "vm-ssh" {
   name    = "${var.network_name}-ssh"
-  network = "${google_compute_subnetwork.default.name}"
+  network = google_compute_subnetwork.default.name
 
   allow {
     protocol = "tcp"
@@ -110,17 +110,17 @@ resource "google_compute_firewall" "vm-ssh" {
 }
 
 output "nat-host" {
-  value = "${module.nat.instance}"
+  value = module.nat.instance
 }
 
 output "nat-ip" {
-  value = "${module.nat.external_ip}"
+  value = module.nat.external_ip
 }
 
 output "vm-host" {
-  value = "${google_compute_instance.vm.self_link}"
+  value = google_compute_instance.vm.self_link
 }
 
 output "vm-ip" {
-  value = "${element(concat(google_compute_address.vm.*.address, list("")), 0)}"
+  value = element(concat(google_compute_address.vm.*.address, list("")), 0)
 }
